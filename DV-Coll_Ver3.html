@@ -1,0 +1,2747 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DV-COLL (Desktop Prototype)</title>
+  <style>
+    body {
+      font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+      margin: 16px;
+      background-color: red;
+    }
+
+    h1 {
+      font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+      font-size: 22px;
+      color: white;
+      margin: 0 0 10px;
+    }
+
+    .btn {
+      padding: 6px 10px;
+      border: 1px solid #888;
+      border-radius: 8px;
+      background: #f6f6f6;
+      cursor: pointer;
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    .small {
+      font-size: 12px;
+      opacity: .85;
+    }
+
+    .status {
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
+    /* --- Layout --- */
+    .app {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 12px;
+      background-color: #faebd7;
+    }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: nowrap;
+      align-items: center;
+    }
+
+    /* ===== DV-FrameGen compact layout (3 across) ===== */
+    .frameGenDoc label {
+      display: grid;
+      gap: 4px;
+      font-size: 13px;
+    }
+
+    .frameGenDoc input,
+    .frameGenDoc select {
+      padding: 6px 8px;
+      border: 1px solid #bbb;
+      border-radius: 10px;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    .frameGrid3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(220px, 1fr));
+      gap: 10px 12px;
+      align-items: start;
+    }
+
+    .frameBottom {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px 12px;
+      align-items: end;
+    }
+
+    .frameActions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 2px;
+    }
+
+    /* Responsive fallback */
+    @media (max-width: 900px) {
+      .frameGrid3 {
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+      }
+
+      .frameBottom {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .frameActions {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .frameGrid3 {
+        grid-template-columns: 1fr;
+      }
+
+      .frameBottom {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .frameGenDoc textarea.mono {
+      border: 1px solid #bbb;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 12.5px;
+      background: #fff;
+    }
+
+    /* --- File list --- */
+    /* We now render a custom list (not <select>) so drag+drop is reliable */
+    .fileList {
+      width: 100%;
+      height: 558px;
+      overflow: auto;
+      border: 1px solid #bbb;
+      border-radius: 8px;
+      background: #fff;
+      padding: 4px;
+      font-size: 14px;
+    }
+
+    .fileItem {
+      display: flex;
+      align-items: center;
+      padding: 2px 6px;
+      border-radius: 6px;
+      user-select: none;
+      cursor: grab;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.15;
+    }
+
+    .fileItem[aria-selected="true"] {
+      background: #dbeafe;
+    }
+
+    .fileItem.dragging {
+      opacity: 0.5;
+    }
+
+    .fileItem.dropTarget {
+      outline: 2px dashed #666;
+      outline-offset: 2px;
+    }
+
+    .fileItem .badge {
+      font-size: 11px;
+      padding: 1px 6px;
+      border: 1px solid #999;
+      border-radius: 999px;
+      margin-left: 8px;
+      opacity: 0.85;
+      flex: 0 0 auto;
+    }
+
+    .fileButtons {
+      display: grid;
+      gap: 6px;
+      align-items: start;
+    }
+
+    .fileRow {
+      display: flex;
+      gap: 6px;
+      flex-wrap: nowrap;
+      align-items: center;
+    }
+
+    .fileButtons .btn {
+      padding: 2px 6px;
+      font-size: 11px;
+    }
+
+    /* --- Output preview --- */
+    .outputWrap {
+      overflow-x: auto;
+    }
+
+    #output {
+      width: 140ch;
+      max-width: 100%;
+      height: 732px;
+      font-size: 12px;
+      white-space: pre;
+      overflow: auto;
+      resize: vertical;
+    }
+
+    .modeBox {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+
+    .modeBox label {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .titleBar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .titleLeft h1 {
+      margin: 0;
+    }
+
+    .titleRight {
+      display: flex;
+      gap: 8px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(234, 221, 202, .35);
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      z-index: 9999;
+    }
+
+    .modalCard {
+      width: min(900px, 96vw);
+      max-height: 85vh;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .25);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 10px;
+    }
+
+    .modalTop {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+
+    }
+
+    .modalTitle {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      margin: 0;
+      font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .modal[hidden] {
+      display: none !important;
+    }
+
+    .helpBody {
+      overflow: auto;
+      padding: 8px 10px;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      background: #fffbe6;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .helpBody code,
+    .helpBody pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    .helpBody pre {
+      white-space: pre-wrap;
+    }
+
+    .appFooter {
+      text-align: center;
+      color: white;
+      opacity: 0.9;
+      margin-top: 11px;
+    }
+
+    /* Saved-list modal */
+    .listGrid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .listRow {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      border: 1px solid #e3e3e3;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .listName {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 55ch;
+    }
+
+    .listActions {
+      display: flex;
+      gap: 6px;
+      flex: 0 0 auto;
+    }
+
+    .helpBody h2,
+    .helpBody h3,
+    .helpBody h4 {
+      margin: 12px 0 6px;
+    }
+
+    .helpBody p,
+    .helpBody ul,
+    .helpBody ol {
+      margin: 6px 0;
+    }
+
+    .helpBody pre {
+      margin: 8px 0;
+    }
+
+    /* ===== Help demo popups (overlay + dialog) ===== */
+    .helpPopupOverlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, .55);
+      z-index: 99999;
+      padding: 16px;
+    }
+
+    .helpPopup {
+      width: 85%;
+      max-width: min(900px, 92vw);
+      max-height: 85vh;
+      overflow-y: auto;
+      background: rgba(192, 192, 192, 1.0);
+      color: #111;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, .6);
+      padding: 14px 18px 18px;
+    }
+
+    .helpPopup__hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .helpPopup__hdr h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .helpPopup__close {
+      cursor: pointer;
+      font: inherit;
+      border: 1px solid rgba(255, 255, 255, .25);
+      background: rgba(255, 255, 255, .06);
+      color: inherit;
+      border-radius: 10px;
+      padding: 6px 10px;
+    }
+
+    .demoSpecimen {
+      font-family: ui-monospace, Menlo, Consolas, "Courier New", monospace;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 10px;
+      padding: 12px;
+      overflow: auto;
+      white-space: pre;
+    }
+
+    /* Footnotes inside help popups */
+    .helpPopupNotes {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(0, 0, 0, .2);
+      font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .helpPopupNotes ol {
+      margin: 6px 0 0 18px;
+      padding: 0;
+    }
+
+    .helpPopupNotes li {
+      margin: 4px 0;
+    }
+
+    .noteMark {
+      font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+      font-size: 0.95em;
+      vertical-align: super;
+      margin-left: 2px;
+    }
+
+    .h3-note {
+      font-weight: normal;
+      font-size: 0.85em;
+      margin-left: 6px;
+      color: #000;
+    }
+
+    .aboutHdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .aboutHdr h3 {
+      margin: 0;
+    }
+
+    .aboutCloseBtn {
+      margin-left: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- FOOTNOTE MARKERS: *  †  ‡  §  ‖  ¶ •  ◦  ⁂  ※  ✱  ✝  ✠  ←  →  ↔  ↕  -->
+
+  <div class="titleBar">
+    <div class="titleLeft">
+      <h1>DV-COLL <em>ver.</em> 3 (cross-platform: Windows OS/macOS)</h1>
+    </div>
+    <div class="titleRight">
+      <button id="helpBtn" class="btn">Help</button>
+      <button id="aboutBtn" class="btn">About</button>
+      <button id="frameGenBtn" class="btn">DV-FrameGen</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <!-- LEFT SIDEBAR -->
+    <div class="panel stack">
+      <!-- Top controls -->
+      <div class="stack">
+        <div class="row">
+          <button id="addFilesBtn" class="btn">Add texts…</button>
+          <input id="fileInput" type="file" multiple style="display:none" />
+
+          <button id="loadListBtn" class="btn">Load saved sort list</button>
+          <input id="loadListInput" type="file" accept=".json,application/json" style="display:none" />
+        </div>
+
+        <div class="row">
+          <div class="modeBox">
+            <label><input type="radio" name="mode" value="word" checked> Word-level</label>
+            <label><input type="radio" name="mode" value="line"> Line-level</label>
+            <label><input type="radio" name="mode" value="raw"> Print lines</label>
+          </div>
+        </div>
+
+        <div class="small">
+          Base text = the <b>first text file</b> in the list below (dividers do not count as base).
+        </div>
+
+        <div class="row">
+          <button id="runBtn" class="btn" disabled>Run collation</button>
+          <button id="saveBtn" class="btn" disabled>Save output</button>
+          <button id="saveListBtn" class="btn" disabled>Save file list</button>
+        </div>
+      </div>
+
+      <!-- File list -->
+      <div class="stack">
+        <div>
+          <b>Texts to collate</b>
+          <span class="small">(click to select; drag to reorder)</span>
+        </div>
+
+        <!-- Buttons: row 1 + row 2 -->
+        <div class="fileButtons">
+          <div class="fileRow">
+            <button id="upBtn" class="btn" disabled>Up</button>
+            <button id="downBtn" class="btn" disabled>Down</button>
+            <button id="topBtn" class="btn" disabled>Top</button>
+            <button id="bottomBtn" class="btn" disabled>Bottom</button>
+            <button id="removeBtn" class="btn" disabled>Remove</button>
+            <button id="clearBtn" class="btn" disabled>Clear list</button>
+          </div>
+
+          <div class="fileRow">
+            <button id="dividerAboveBtn" class="btn" disabled>Divider ↑</button>
+            <button id="dividerBelowBtn" class="btn" disabled>Divider ↓</button>
+          </div>
+        </div>
+
+        <!-- Custom rendered list -->
+        <div id="fileList" class="fileList mono" role="listbox" aria-label="Texts to collate"></div>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+
+    <!-- RIGHT MAIN -->
+    <div class="panel stack">
+      <div class="row" style="justify-content: space-between;">
+        <div>
+          <b>Output preview</b>
+          <span class="small">(monospace, horizontal scroll if needed)</span>
+        </div>
+        <div class="row">
+          <button id="clearPreviewBtn" class="btn" disabled>Clear preview</button>
+        </div>
+      </div>
+
+      <div class="outputWrap">
+        <textarea id="output" class="mono" readonly wrap="off"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <footer class="appFooter">
+    © 2000–2026 Gary A. Stringer.
+  </footer>
+
+  <!-- Help Center content (single source of truth) -->
+  <template id="helpTemplate">
+    <div class="helpDoc">
+      <p>Originally developed for use in the <em>Donne Variorum</em> project, <b>DV-COLL</b> facilitates the
+        identification and analysis of variations in texts written in fixed line-lengths (i. e., poetry or
+        user-segmented prose), comparing one or more alternate witnesses against a base text and displaying the results
+        in a columnar output that highlights differences between the base and variant texts. The program requires that
+        texts intended for comparison be embodied in identically structured electronic files saved in a plain text
+        <code>(.txt)</code> format. A convenient tool for preparing such files is the accompanying DV frame file
+        generator (<b>DV-FrameGen</b>).
+      </p>
+
+      <h3>Text preparation</h3>
+      <ol>
+        <li><b>Input files</b> must be entered in a fixed-width font <code>.txt</code> such as Courier New, Consolas,
+          Menlo, or ui-monospace. <b>Collations</b> will also be shown on screen and saved in a monospaced font. </li>
+        <li>The program runs entirely in-browser and depends on available RAM and the browser's JS engine, but there is
+          otherwise <b>no explicit hard cap</b> on the number of witnesses or file sizes it can handle.</li>
+        <li>The <b>maximum number</b> of words (easily modifiable) per line is currently coded at <b>40</b> (see more
+          below).
+        </li>
+        <li>All text files must be of a <b>uniform structure and length</b>, as follows:
+          <ol type="a">
+            <li>Each <u>text file</u> must contain exactly the same number of lines, arranged in the same order, so that
+              all line 1's, line 2's, etc. align for proper comparison. <u>Omitted/missing lines</u> in a given witness
+              must be flagged with a place-marker ID tag in the overall structure of the file. </li>
+            <li>Each line in a text file must begin with an <u>11-digit alphanumeric IDentification tag</u>, which
+              remains with the line throughout the collation and output process as a URL for the line. DV ID tags took
+              the form <code>[3-digit work siglum].[3-digit source siglum].[3-digit line number]</code> (e.g.,
+              <code>00A.C02.001</code>), but <u>any ID system</u> of the user's choosing may be used so long as the tag
+              is consistently maintained at 11 digits (e.g., <code>00Ser12.001</code> or even <code>000000textA</code>).
+              <u>Omitted lines</u> are signaled with the chosen ID tag followed immediately by <code>om</code> (e.g.,
+              <code>00Ser12.005om</code>).
+            </li>
+            <li><u>ID tags containing double dollar signs</u> (<code>$$</code>) are not collated, and their contents are
+              passed straight into the output without alteration. This feature is useful for preserving data that the
+              user wishes to view in full, such as header lines or lines containing explanatory annotations. Any number
+              of such non-collating lines may be included in an entry template.</li>
+          </ol>
+        <li><u>Structural templates compliant with these rules</u> are automatically generated by <b>DV-FrameGen</b>
+          (linked above), but may also be constructed with any wordprocessor/text editor.</li>
+      </ol>
+      <button type="button" class="btn" data-help-popup="demoInputSpecimenTpl">
+        View sample input file
+      </button>
+
+      <!-- Demo popup template: well-formed input specimen -->
+      <template id="demoInputSpecimenTpl">
+        <div class="helpPopupOverlay" data-action="overlayClose">
+          <section class="helpPopup" role="dialog" aria-modal="true" aria-label="Example input file">
+            <div class="helpPopup__hdr">
+              <h3>Sample input file</h3>
+              <button class="helpPopup__close" type="button" data-action="close">Close</button>
+            </div>
+
+            <pre class="demoSpecimen"><code>
+IDENTILIN$$  F303Grimm|Mary|Fairy vol., Add.3500|f. 00aV|GAS\o\8-25-85\P:TLP\o\5-2-96\C:JSC\10-18-04  †
+303.Grim0HE  Mary Had a Little Lamb  ‡
+303.Grim001  Mary had a little lamb  *
+303.Grim002  Its fleece was white as snow,
+303.Grim003  And everywhere that Mary went
+303.Grim004  The lamb was sure to go.
+303.Grim0SS  finis/ JKL  ††
+303INFOLN$$  page ink smudged  ¶ 
+</code></pre>
+            <div class="helpPopupNotes">
+              <ol>
+                <li><b>†</b>: user-defined non-collated l. (flagged by <code>$$</code>) noting file name, source name,
+                  transcriber's
+                  initials, date of entry, and proofreader and corrector initials and dates.</li>
+                <li><b>‡</b>: heading/title line marked by HE in IDtag.</li>
+                <li><b>*</b>: normal text input line.</li>
+                <li><b>††</b>: subscription flagged by <code>SS</code> in ID tag.</li>
+                <li><b>¶ </b>: user-defined non-collated info. line recording notable feature of copy transcribed. </li>
+              </ol>
+            </div>
+          </section>
+        </div>
+      </template>
+
+      <h3>
+        Work flow
+        <span class="h3-note">(implemented by on-screen buttons)</span>
+      </h3>
+      <ul>
+        <li><b>Add texts:</b> select transcription files, using the OS's normal navigation, selection, and insertion
+          methods.</li>
+        <li><b>Order witnesses</b>: drag/drop or use buttons; reorder as necessary/desired.</li>
+        <li><b>Select processing mode:</b></li>
+        <ul>
+          <li> <b>Word-level</b>: aligns words/tokens in columns under base text. Variant words are displayed; exact
+            matches are suppressed; omitted words tokens are printed in angle brackets <code>(&lt;word&gt;)</code>;
+            inserted words are printed in braces
+            (<code>{word}</code>).</li>
+          <li> <b>Line-level</b>: compares lines globally; suppresses exact matches in the output.</li>
+          <li> <b>Print lines</b>: prints all lines in full without comparison. </li>
+        </ul>
+        <li><b>Run collation:</b> click "Run" button</li>
+        <li><b>(Optional):</b> insert divider lines to separate families/group</li>
+        <li><b>Save output</b>: download collation in a <code>.txt</code> format</li>
+      </ul>
+
+      <h3>Base text and divider-line files</h3>
+      <ul>
+        <li>The base text is the <b>text file</b> (not a divider file) placed first in the list.</li>
+        <li>Divider-line files insert a line of dashes into the collation at user-designated points to visually
+          demarcate groups/families. They are not collated.</li>
+      </ul>
+
+      <h3>Saving file lists</h3>
+      <ul>
+        <li><b>Save file list</b>: stores ordering (including dividers) inside the browser on the user's machine).</li>
+        <li><b>Load saved sort list</b>: restores previously saved order of witnesses; may be invoked either before or
+          after file names populate the "Texts to collate" panel.</li>
+        <li><b>Export</b>as <code>.JSON</code> file in order to move lists between machines.</li>
+      </ul>
+
+      <button type="button" class="btn" data-help-popup="demoOmissionSpecimenTpl">
+        View sample collation
+      </button>
+      <template id="demoOmissionSpecimenTpl">
+        <div class="helpPopupOverlay" data-action="overlayClose">
+          <section class="helpPopup" role="dialog" aria-modal="true" aria-label="Omission example">
+            <div class="helpPopup__hdr">
+              <h3>Sample collation</h3>
+              <button class="helpPopup__close" type="button" data-action="close">Close</button>
+            </div>
+
+            <pre class="demoSpecimen"><code>Collation run on 2/5/2026 at 12:30:03 PM : Word-level    ⁂   
+
+IDENTILIN$$  F303Grimm|Mary|Fairy vol., Add.3500|f. 00aV|GAS\o\8-25-85\P:TLP\o\5-2-96\C:JSC\10-18-04     ‡ 
+IDENTILIN$$  F303GrimRev|Mary|Fairy vol, ed. 2|f. 00aV|GAS\o\8-26-85\P:TLP\o\5-5-96\C:JSC\10-18-04
+DIVIDERLN$$  ------------------------------------------------------------
+IDENTILIN$$  F303Tonson|Mary|MS abcX, No. 32|f. 001v|GAS\o\9-01-87\P:TLP\o\5-2-96\C:JSC\10-18-04
+IDENTILIN$$  F303McHaney|Mary|vol. upper shelf, No. 2|single sheet|GAS\o\9-02-87\P:TLP\x\5-2-96\C:JSC\10-18-04
+
+303.Grim0HE Mary   Had    a    Little   Lamb   
+303.GriR0HE                                                                † 
+DIVIDERLN$$  ------------------------------------------------------------  ‡  
+303.Tons0HE Mary's Little Lamb <Little> <Lamb>  §
+303.McHa0HE Mary's Little Lamb <Little> <Lamb> 
+
+303.Grim001 Mary had   a little   lamb       
+303.GriR001                       lamb,      
+DIVIDERLN$$  ------------------------------------------------------------
+303.Tons001      owned   smallish            
+303.McHa001      owned   smallish la[missing] 
+
+303.Grim002 Its fleece was  white as   snow, 
+303.GriR002                       <as> snow;                               
+DIVIDERLN$$  ------------------------------------------------------------
+303.Tons002     fleas  made quite a    show  
+303.McHa002     fleas  were quite the  show  
+
+303.Grim003 And     everywhere    that   Mary     went                 
+303.GriR003         every {where}                                          ¶ 
+DIVIDERLN$$  ------------------------------------------------------------
+303.Tons003 Because they          jumped when'ere she {moved}          
+303.McHa003 Because wheree're            the      stupid {girl} {went} 
+
+303.Grim004 The lamb      was     sure   to     go.   
+303.GriR004               would   surely <to>         
+DIVIDERLN$$  ------------------------------------------------------------
+303.Tons004 Or  scratched herself below! <to>   <go.> 
+303.McHa004 She scratched her     ***    below. <go.>    ✠
+
+303.Grim0SS finis/ JKL 
+303.GriR0SS JMS    <JKL>
+DIVIDERLN$$  ------------------------------------------------------------
+303.Tons0SS MLF    <JKL>
+303.McHa0SSom  
+
+303INFOLN$$  page ink smudged
+303INFOLN$$  rev. of original ed.
+DIVIDERLN$$  ------------------------------------------------------------
+303INFOLN$$  child's handwriting
+303INFOLN$$  text lost to water damage in l. 1; blotted letters in l. 4
+            
+</code></pre>
+            <div class="helpPopupNotes">
+              <ol>
+                <li><b>⁂</b> : line automatically generated by program to date collation run.</li>
+                <li><b>‡</b> : <code>$$</code> in ID tag negates collation; line fully printed.</li>
+                <li><b>†</b> : blank line indicate source text matches base text word for word.</li>
+                <li><b>‡</b> : divider line inserted to demarcate grouping of similar texts.</li>
+                <li><b>§</b> : angle brackets indicate word missing fromn source.</li>
+                <li><b>¶</b> : braces indicate word inserted in source.</li>
+                <li><b>✠</b> : asterisks inserted by transcriber to flag blotted letters--not generated by program.</li>
+              </ol>
+            </div>
+          </section>
+        </div>
+      </template>
+
+      <h3>For Developers / Technical Info</h3>
+
+      <p>
+        DV-COLL is a single-file HTML/CSS/JS application. The entire program (UI + collation logic) is contained
+        in one HTML document. This section documents internal assumptions, key parameters, and comparison logic
+        for developers who wish to extend or repurpose the program.
+      </p>
+
+      <h4>1) Data model</h4>
+      <p>
+        Witnesses are stored in the <code>fileItems</code> array. Items are of two kinds:
+      </p>
+
+      <pre>{
+    kind: "file",
+    file: File,        // browser File object
+    name: string,      // filename (used for saved-list matching)
+    text?: string,     // entire file text once loaded
+    lines?: string[]   // text split into physical lines (after preprocessing)
+  }
+
+  { kind: "divider", name: string }  // divider line replicated to all rows</pre>
+
+      <p>
+        The base text is the first <code>{kind:"file"}</code> in <code>fileItems</code>. Divider entries do not count as
+        base.
+        See <code>firstBaseIndex()</code>.
+      </p>
+
+      <h4>2) Hard / adjustable parameters</h4>
+      <ul>
+        <li><code>ID_LEN = 11</code>: number of characters treated as the “ID tag” at the start of each line.</li>
+        <li><code>MAXWORDS_PER_LINE = 40</code>: maximum number of tokens DV-COLL compares/prints per line in word-level
+          mode.
+          Increase for unusually long prose lines, noting memory/runtime impact.</li>
+        <li><code>DIVIDER_IDTAG</code> / <code>DIVIDER_TEXT</code>: divider witness lines. Divider lines contain
+          <code>$$</code> so they bypass collation.
+        </li>
+        <li>DV-COLL includes a sample hard-coded alignment heuristic (I HAVE is treated as equivalent to I’AVE) to
+          reduce false insert/delete cascades. Advanced users/developers may extend and customize this list with
+          additional common contractions or spelling/word-splitting patterns.
+        <li><code>DV_TOGGLE_MARKERS</code> and <code>DV_SUBS</code>: DV markup handling for match-normalization (see
+          below).</li>
+      </ul>
+
+      <h4>3) Preprocessing pipeline (when files are read)</h4>
+      <p>
+        Files are read in <code>ensureLoadedRealFiles()</code>. Each file is converted to Unix newlines
+        (<code>\n</code>)
+        and split into lines. Then <code>mergeDollarNoteContinuations()</code> merges continuation lines following a
+        tagged
+        <code>$$</code> note line into one long physical line (until blank line or next ID tag).
+      </p>
+
+      <p>
+        After collation, <code>formatNoCollateNoteBlocks()</code> similarly merges continuation lines in the output so
+        that
+        <code>$$</code> note blocks remain single long lines in the saved output.
+      </p>
+
+      <h4>4) “Special” lines that bypass word collation</h4>
+      <p>
+        A line is treated as “no-collate” if it contains <code>$$</code> (or other special markers).
+        See <code>isSpecialNoCollateLine()</code>. In word-level mode, such lines are printed as-is across witnesses
+        for that line position.
+      </p>
+
+      <h4>5) Comparison &amp; matching logic</h4>
+      <p>
+        The primary equality test for alignment is <code>align_match(a,b)</code>. It calls
+        <code>normalizeForMatch()</code>
+        on both strings and compares the results.
+      </p>
+
+      <ul>
+        <li>
+          <code>normalizeForMatch()</code> trims spaces, normalizes curly apostrophes (<code>’ → '</code>),
+          strips DV markup, removes colons, uppercases, then applies equivalences in <code>EQUIV</code>.
+        </li>
+        <li>
+          <code>stripDvMarkupForMatch()</code> removes:
+          <ul>
+            <li>toggle markers in <code>DV_TOGGLE_MARKERS</code> (e.g. <code>%1…%0</code>, <code>%J</code>,
+              <code>%K</code>, <code>%Y</code>, <code>%Z</code>)
+            </li>
+            <li>substitutions in <code>DV_SUBS</code> (processed longest-first; see <code>_DV_SUB_KEYS</code>)</li>
+            <li>angle/guillemet markup (<code>&lt;&lt;</code>, <code>&gt;&gt;</code>, <code>&lt;</code>,
+              <code>&gt;</code>)
+            </li>
+            <li>DV diacritic encodings matched by regex in <code>stripDvDiacriticsForMatch()</code></li>
+          </ul>
+        </li>
+        <li>
+          <code>raw_match(a,b)</code> is a stricter equality test used only to decide whether an aligned witness token
+          should print as blank (“identical”) or explicitly (“aligned but not raw-identical”).
+        </li>
+      </ul>
+
+      <p>
+        When tokens do not align exactly, word-level mode uses heuristic fallback:
+      </p>
+      <ul>
+        <li><code>words_close(base, witness)</code>: a loose similarity heuristic (character-order overlap) used to
+          reduce
+          insert/delete cascades when spelling differs; returns <code>{ok, pcent}</code>.</li>
+        <li>A special case recognizes <code>I + HAVE</code> vs <code>I'AVE</code> to avoid misalignment.</li>
+        <li>Insertions are shown as <code>{word}</code>; deletions as <code>&lt;word&gt;</code>.</li>
+      </ul>
+
+      <p>
+        If you want a more standard alignment algorithm (e.g., token-level LCS/diff, Levenshtein alignment, etc.),
+        the place to substitute it is the inner pointer-advance logic inside <code>wordLevelCollate()</code>
+        where <code>orig_ptr</code> and <code>comp_ptr</code> are advanced.
+      </p>
+
+      <h4>6) Alignment by line position (important limitation)</h4>
+      <p>
+        All modes assume primary correspondence by <b>line index</b>. DV-COLL does not currently perform robust
+        “line realignment” after large additions/omissions. When witnesses have unequal physical line counts,
+        shorter witnesses are padded with blank lines to the maximum line count in the run
+        (see <code>maxLines</code> and <code>allLines</code> construction in the Run handler).
+      </p>
+
+      <h4>7) Practical limits (witness count, file size, memory)</h4>
+      <p>
+        DV-COLL runs entirely in-browser and therefore depends on available RAM and the browser’s JS engine.
+        There is no explicit hard cap on number of witnesses or file sizes, but the following factors matter:
+      </p>
+      <ul>
+        <li><b>Total text volume:</b> each file is held as a full string (<code>it.text</code>) and as an array of lines
+          (<code>it.lines</code>).</li>
+        <li><b>Padding cost:</b> <code>allLines</code> is built as <code>[number_of_items] × [maxLines]</code>. Large
+          <code>maxLines</code> increases memory use.
+        </li>
+        <li><b>Word-level superchunk:</b> per physical line, word-level mode allocates
+          <code>superchunk[fileCount][MAXWORDS_PER_LINE+2]</code>. Increasing <code>MAXWORDS_PER_LINE</code> increases
+          per-line memory and runtime.
+        </li>
+        <li><b>Output size:</b> the full output is built as one large string (<code>lastOutputText</code>) and placed in
+          the output textarea.</li>
+      </ul>
+
+      <p>
+        Rule of thumb: many medium files can be more demanding than a few large ones, because runtime scales with
+        witness count × line count × (word-level token work). If the browser tab becomes unresponsive,
+        reduce witness count, split long texts into segments, or lower <code>MAXWORDS_PER_LINE</code> for exploratory
+        runs.
+      </p>
+
+      <h4>8) Saved-list mechanism</h4>
+      <p>Saved lists are stored in <code>localStorage</code> under keys:</p>
+      <ul>
+        <li><code>LS_INDEX_KEY = "dv-coll:list-index:v1"</code> (the list of saved names)</li>
+        <li><code>LS_ITEM_PREFIX = "dv-coll:list:v1:"</code> (payloads by name)</li>
+      </ul>
+
+      <p>
+        Payloads store <code>mode</code> and an ordered <code>items</code> list containing both files (by filename) and
+        divider entries.
+        When a list is loaded, <code>pendingListPlan</code> is applied immediately if files are already loaded, or
+        deferred until files are added.
+      </p>
+
+      <h4>9) Where to modify behavior safely</h4>
+      <ul>
+        <li><b>Match/normalization rules:</b> edit <code>normalizeForMatch()</code>,
+          <code>stripDvMarkupForMatch()</code>,
+          <code>DV_TOGGLE_MARKERS</code>, <code>DV_SUBS</code>, <code>EQUIV</code>.
+        </li>
+        <li><b>ID-tag rules:</b> edit <code>ID_LEN</code> and <code>looksLikeIdTagLine()</code>.</li>
+        <li><b>Note-block merging:</b> edit <code>mergeDollarNoteContinuations()</code> and
+          <code>formatNoCollateNoteBlocks()</code>.
+        </li>
+        <li><b>Word-level alignment:</b> edit pointer-advance logic inside <code>wordLevelCollate()</code>.</li>
+        <li><b>Output conventions:</b> edit insertion/deletion formatting (<code>{...}</code>, <code>&lt;...&gt;</code>)
+          in <code>wordLevelCollate()</code>.</li>
+      </ul>
+
+      <hr style="margin:16px 0;">
+
+      <h3>Versioning &amp; Contributions</h3>
+      <ul>
+        <li><b>Single-file principle:</b> DV-COLL is intended to remain deployable as one HTML file (offline-capable).
+        </li>
+        <li><b>Reproducibility:</b> If you change normalization/matching rules, consider noting it in the output header
+          line
+          (the “Collation run on …” line) so runs remain interpretable.</li>
+        <li><b>Backward compatibility:</b> If you change saved-list formats, bump the <code>version</code> string in
+          payloads
+          (e.g. <code>"dv-coll-list-2"</code>) and accept older formats if feasible.</li>
+        <li><b>Attribution:</b> Please preserve the copyright notice and acknowledge modifications in the About box
+          or in a comment header for forks and local adaptations.</li>
+      </ul>
+
+      <h3>Known issues / Road map</h3>
+      <ul>
+        <li><b>Line realignment:</b> Currently aligns primarily by physical line number. Future enhancement:
+          optional realignment by anchor IDs or selected “sync lines,” or a lightweight sliding-window match.</li>
+        <li><b>TEI support:</b> Planned via preprocessing rather than in-browser parsing (e.g., convert TEI to
+          plain-text witness files
+          with consistent ID tags before loading into DV-COLL).</li>
+        <li><b>Performance safeguards:</b> Possible future additions include warnings for very large
+          witness-count × line-count runs, or an optional “streamed output” mode to avoid giant strings.</li>
+        <li><b>Normalization profiles:</b> Future enhancement: selectable normalization presets (strict/raw vs
+          DV-normalized).</li>
+      </ul>
+
+      <p class="small" style="margin-top:12px;">
+        © 2000–2026 Gary A. Stringer. Single-file HTML/JavaScript application.
+      </p>
+    </div>
+  </template>
+
+  <!-- =======================
+     DV-FrameGen (Frame File Generator)
+     ======================= -->
+  <template id="frameGenTemplate">
+    <div class="frameGenDoc">
+
+      <p style="margin-top:0;">
+        <b>DV-FrameGen</b> generates a properly formed <code>.txt</code> frame file for DV-COLL.
+      </p>
+
+      <div class="frameGrid3">
+        <!-- Row 1 -->
+        <label>Work Siglum (3 chars)
+          <input id="fgWork" type="text" maxlength="3" value="XXX">
+        </label>
+
+        <label>Source Siglum (3 chars)
+          <input id="fgSource" type="text" maxlength="3" value="XXX">
+        </label>
+
+        <label>Entry Date (m-d-yy)
+          <input id="fgDate" type="text" value="">
+        </label>
+
+        <!-- Row 2 -->
+        <label>Source Name
+          <input id="fgSourceName" type="text" value="">
+        </label>
+
+        <label>Transcriber (name/initials)
+          <input id="fgTranscriber" type="text" value="">
+        </label>
+
+        <label>Nature of Source
+          <select id="fgNature">
+            <option value="o" selected>o - original</option>
+            <option value="fs">fs - facsimile</option>
+            <option value="x">x - xerox</option>
+            <option value="mf">mf -microfilm</option>
+          </select>
+        </label>
+
+        <!-- Row 3 -->
+        <label>Folio Number(s)
+          <input id="fgFolio" type="text" value="">
+        </label>
+
+        <label>Page Number(s)
+          <input id="fgPages" type="text" value="">
+        </label>
+
+        <label>Number of Header Lines (0–9)
+          <input id="fgHeaders" type="number" min="0" max="9" value="0">
+        </label>
+      </div>
+
+      <!-- Bottom row (2 fields + actions) -->
+      <div class="frameBottom">
+        <label>Number of Lines of Text
+          <input id="fgTextLines" type="number" min="0" step="1" value="0">
+        </label>
+
+        <label>Lines per Stanza (0 = nonstanzaic)
+          <input id="fgStanzaLines" type="number" min="0" step="1" value="0">
+        </label>
+
+        <div class="frameActions">
+          <button id="fgGenerateBtn" class="btn">Generate frame file</button>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="row" style="justify-content: space-between; align-items:flex-end; flex-wrap:wrap;">
+          <div>
+            <b>Editor</b> <span class="small">(type your transcription after each ID tag; Download saves exactly this
+              text)</span>
+          </div>
+
+          <div class="row" style="flex-wrap:wrap; justify-content:flex-end;">
+            <button id="fgLoadTxtBtn" class="btn">Load saved <code>.txt</code> file</button>
+            <input id="fgLoadTxtInput" type="file" accept=".txt,text/plain" style="display:none" />
+
+            <button id="fgSaveTxtBtn" class="btn" disabled>Save current <code>.txt</code> file</button>
+            <span id="fgStatus" class="small"></span>
+          </div>
+        </div>
+
+        <textarea id="fgEditor" class="mono" style="width:100%; height:420px; margin-top:6px;" wrap="off"></textarea>
+      </div>
+    </div>
+  </template>
+
+  <!-- FrameGen Modal -->
+  <div id="frameGenModal" class="modal" hidden>
+    <div class="modalCard">
+      <div class="modalTop">
+        <h2 class="modalTitle">DV-FrameGen</h2>
+        <button id="frameGenCloseBtn" class="btn">Close</button>
+      </div>
+      <div id="frameGenBody" class="helpBody"></div>
+    </div>
+  </div>
+
+  <script>
+    // ===============================
+    // DV-FrameGen modal logic (CLEAN, SINGLE-WIRE)
+    // Drop-in replacement for your entire current FrameGen <script> block.
+    // - No internal “drafts”
+    // - OS Load .txt + Save .txt
+    // - Best-effort parsing of IDENTILIN$$ to populate fields
+    // ===============================
+
+    (() => {
+      // ---- helpers ----
+      function pad3(n) {
+        const s = String(n);
+        return (s.length >= 3) ? s.slice(-3) : ("000" + s).slice(-3);
+      }
+      function fmt_m_d_yy(d) {
+        const mm = String(d.getMonth() + 1);
+        const dd = String(d.getDate());
+        const yy = String(d.getFullYear()).slice(-2);
+        return `${mm}-${dd}-${yy}`;
+      }
+      function sanitize3(s) {
+        s = String(s || "").trim();
+        return (s.length === 3) ? s : null;
+      }
+      function downloadText(filename, text) {
+        const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }, 0);
+      }
+
+      // ---- Modal wiring ----
+      const frameGenModal = document.getElementById("frameGenModal");
+      const frameGenBody = document.getElementById("frameGenBody");
+      const frameGenTpl = document.getElementById("frameGenTemplate");
+      const frameGenCloseBtn = document.getElementById("frameGenCloseBtn");
+      const frameGenBtn = document.getElementById("frameGenBtn"); // title-bar button
+
+      if (!frameGenModal || !frameGenBody || !frameGenTpl || !frameGenCloseBtn) {
+        console.error("DV-FrameGen modal shell missing one of: #frameGenModal, #frameGenBody, #frameGenTemplate, #frameGenCloseBtn");
+        return;
+      }
+
+      function openFrameGen() {
+        frameGenBody.innerHTML = "";
+        frameGenBody.appendChild(frameGenTpl.content.cloneNode(true));
+
+        // ==== elements (MUST match IDs inside the template) ====
+        const fgWork = frameGenBody.querySelector("#fgWork");
+        const fgSource = frameGenBody.querySelector("#fgSource");
+        const fgDate = frameGenBody.querySelector("#fgDate");
+        const fgSourceName = frameGenBody.querySelector("#fgSourceName");
+        const fgTrans = frameGenBody.querySelector("#fgTranscriber");
+        const fgNature = frameGenBody.querySelector("#fgNature");
+        const fgFolio = frameGenBody.querySelector("#fgFolio");
+        const fgPages = frameGenBody.querySelector("#fgPages");
+        const fgHeaders = frameGenBody.querySelector("#fgHeaders");
+        const fgTextLines = frameGenBody.querySelector("#fgTextLines");
+        const fgStanza = frameGenBody.querySelector("#fgStanzaLines");
+
+        const fgEditor = frameGenBody.querySelector("#fgEditor");
+        const genBtn = frameGenBody.querySelector("#fgGenerateBtn");
+        const loadTxtBtn = frameGenBody.querySelector("#fgLoadTxtBtn");
+        const loadTxtInput = frameGenBody.querySelector("#fgLoadTxtInput");
+        const saveTxtBtn = frameGenBody.querySelector("#fgSaveTxtBtn");
+
+        // NOTE: your template currently contains TWO <span id="fgStatus"> elements.
+        // querySelector() will grab the first one; querySelectorAll lets us safely grab one.
+        const fgStatus = frameGenBody.querySelectorAll("#fgStatus")[0] || null;
+
+        // ==== hard fail early if anything is missing ====
+        const missing = [];
+        if (!fgWork) missing.push("#fgWork");
+        if (!fgSource) missing.push("#fgSource");
+        if (!fgDate) missing.push("#fgDate");
+        if (!fgSourceName) missing.push("#fgSourceName");
+        if (!fgTrans) missing.push("#fgTranscriber");
+        if (!fgNature) missing.push("#fgNature");
+        if (!fgFolio) missing.push("#fgFolio");
+        if (!fgPages) missing.push("#fgPages");
+        if (!fgHeaders) missing.push("#fgHeaders");
+        if (!fgTextLines) missing.push("#fgTextLines");
+        if (!fgStanza) missing.push("#fgStanzaLines");
+        if (!fgEditor) missing.push("#fgEditor");
+        if (!genBtn) missing.push("#fgGenerateBtn");
+        if (!loadTxtBtn) missing.push("#fgLoadTxtBtn");
+        if (!loadTxtInput) missing.push("#fgLoadTxtInput");
+        if (!saveTxtBtn) missing.push("#fgSaveTxtBtn");
+        if (!fgStatus) missing.push("#fgStatus");
+        if (missing.length) {
+          console.error("FrameGen missing elements:", missing);
+          alert("DV-FrameGen template is missing: " + missing.join(", "));
+          return;
+        }
+
+        function setStatus(msg) { fgStatus.textContent = msg || ""; }
+
+        // defaults
+        fgDate.value = fmt_m_d_yy(new Date());
+        fgEditor.value = "";
+        saveTxtBtn.disabled = true;
+        setStatus("");
+
+        // enforce 3-char sigla
+        function enforceSigla() {
+          const w = sanitize3(fgWork.value);
+          const s = sanitize3(fgSource.value);
+          if (!w) { alert("Work siglum must be exactly 3 characters."); fgWork.value = "XXX"; }
+          if (!s) { alert("Source siglum must be exactly 3 characters."); fgSource.value = "XXX"; }
+        }
+        fgWork.onblur = enforceSigla;
+        fgSource.onblur = enforceSigla;
+
+        // normalize date lightly if parseable
+        fgDate.onblur = () => {
+          const t = fgDate.value.trim();
+          const asDate = new Date(t);
+          if (!isNaN(asDate.getTime())) fgDate.value = fmt_m_d_yy(asDate);
+        };
+
+        function buildFrameText() {
+          enforceSigla();
+
+          const work = fgWork.value.trim();
+          const source = fgSource.value.trim();
+
+          const headerCount = Math.max(0, Math.min(9, Number(fgHeaders.value || 0)));
+          if (Number(fgHeaders.value || 0) > 9) {
+            alert("Header lines limited to 0–9 (so HE# stays 11 characters).");
+            fgHeaders.value = String(headerCount);
+          }
+
+          const textLines = Math.max(0, Number(fgTextLines.value || 0));
+          const stanzaLines = Math.max(0, Number(fgStanza.value || 0));
+
+          let identiline = `IDENTILIN$$  X${work}${source} | `;
+          identiline += `${(fgSourceName.value || "").trim()} | ff. ${(fgFolio.value || "").trim()} | pp. `;
+          identiline += `${(fgPages.value || "").trim()}\\ E:${(fgTrans.value || "").trim()}\\`;
+          identiline += `${fgNature.value}\\`;
+          identiline += `${(fgDate.value || "").trim()}`;
+
+          const out = [];
+          out.push(identiline);
+
+          for (let i = 1; i <= headerCount; i++) {
+            out.push(`${work}.${source}.HE${String(i).slice(-1)}`);
+          }
+
+          let counter = -1;
+          for (let i = 1; i <= textLines; i++) {
+            const tag = `${work}.${source}.${pad3(i)}`;
+            counter++;
+
+            if (stanzaLines !== 0 && counter === stanzaLines) {
+              out.push(`${work}.${source}.SZB`);
+              counter = 0;
+            }
+            out.push(tag);
+          }
+
+          out.push(`${work}.${source}.0SS`);
+          out.push(`${work}.${source}.0$$`);
+
+          return out.join("\n") + "\n";
+        }
+
+        // ========= Parsing option when loading a .txt =========
+        function tryParseFrameGenFromText(txt) {
+          // Always load text into editor
+          fgEditor.value = String(txt || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+          saveTxtBtn.disabled = (fgEditor.value.trim().length === 0);
+
+          const lines = fgEditor.value.split("\n").filter(l => l.trim() !== "");
+          const ident = lines.find(l => l.startsWith("IDENTILIN$$"));
+          if (!ident) {
+            setStatus("Loaded .txt (no IDENTILIN$$ line found; editor only).");
+            return;
+          }
+
+          // IDENTILIN$$  X303Grim | Source Name | ff. 00aV | pp. 12\\ E:GAS\\o\\2-8-26
+          const mSig = ident.match(/^IDENTILIN\$\$\s+X([A-Za-z0-9]{3})([A-Za-z0-9]{3})\s*\|\s*/);
+          if (mSig) {
+            fgWork.value = mSig[1];
+            fgSource.value = mSig[2];
+          }
+
+          // best-effort grabs
+          const parts = ident.split("|").map(s => s.trim());
+          if (parts[1]) fgSourceName.value = parts[1];
+
+          const fol = ident.match(/\bff\.\s*([^|\\]+)/i);
+          if (fol) fgFolio.value = fol[1].trim();
+
+          const pg = ident.match(/\bpp\.\s*([^\\|]+)/i);
+          if (pg) fgPages.value = pg[1].trim();
+
+          const tr = ident.match(/\\\s*E:([^\\]+)\\/i);
+          if (tr) fgTrans.value = tr[1].trim();
+
+          const nat = ident.match(/\\\s*([oxpm])\s*\\/i);
+          if (nat) fgNature.value = nat[1];
+
+          const tail = ident.split("\\").pop();
+          if (tail && tail.trim()) fgDate.value = tail.trim();
+
+          const headerLines = lines.filter(l => /\b\.HE\d\b/.test(l)).length;
+          fgHeaders.value = String(Math.min(9, Math.max(0, headerLines)));
+
+          const textLineTags = lines.filter(l => /\.[0-9]{3}\b/.test(l)).length;
+          fgTextLines.value = String(Math.max(0, textLineTags));
+
+          // stanza lines: infer if SZB present (we can't safely infer stanza length; leave as-is)
+          if (lines.some(l => /\.SZB\b/.test(l)) && Number(fgStanza.value || 0) === 0) {
+            // keep non-destructive: don't guess a number, just leave it
+          }
+
+          setStatus("Loaded .txt and parsed fields (best effort).");
+        }
+
+        // ---- Wire actions (use .onclick so reopening modal doesn't stack listeners) ----
+
+        genBtn.onclick = () => {
+          try {
+            const txt = buildFrameText();
+            fgEditor.value = txt;
+            saveTxtBtn.disabled = (fgEditor.value.trim().length === 0);
+            setStatus(`Generated ${txt.split("\n").filter(Boolean).length} line(s).`);
+          } catch (err) {
+            console.error(err);
+            alert("Could not generate frame text (see console).");
+          }
+        };
+
+        fgEditor.oninput = () => {
+          saveTxtBtn.disabled = (fgEditor.value.trim().length === 0);
+        };
+
+        loadTxtBtn.onclick = () => loadTxtInput.click();
+
+        loadTxtInput.onchange = async () => {
+          const f = (loadTxtInput.files || [])[0];
+          loadTxtInput.value = "";
+          if (!f) return;
+          const txt = await f.text();
+          tryParseFrameGenFromText(txt);
+        };
+
+        saveTxtBtn.onclick = () => {
+          const txt = fgEditor.value || "";
+          if (!txt.trim()) return;
+
+          const work = (fgWork.value || "XXX").trim();
+          const source = (fgSource.value || "XXX").trim();
+          const filename = `X${work}${source}.txt`;
+
+          downloadText(filename, txt);
+          setStatus("File saved.");
+        };
+
+        frameGenModal.hidden = false;
+      }
+
+      function closeFrameGen() {
+        frameGenModal.hidden = true;
+      }
+
+      // Wire open/close (ONE copy)
+      if (frameGenBtn) {
+        frameGenBtn.addEventListener("click", openFrameGen);
+      } else {
+        console.warn("No #frameGenBtn found (DV-FrameGen button missing in the title bar).");
+      }
+
+      frameGenCloseBtn.addEventListener("click", closeFrameGen);
+      frameGenModal.addEventListener("click", (e) => { if (e.target === frameGenModal) closeFrameGen(); });
+      document.addEventListener("keydown", (e) => { if (!frameGenModal.hidden && e.key === "Escape") closeFrameGen(); });
+    })();
+  </script>
+
+
+  <!-- Help / About -->
+  <div id="helpModal" class="modal" hidden>
+    <div class="modalCard">
+      <div class="modalTop">
+        <div><b>Help DV-Coll</b></div>
+        <button id="helpCloseBtn" class="btn">Close</button>
+      </div>
+      <div id="helpBody" class="helpBody"></div>
+    </div>
+  </div>
+
+  <div id="aboutModal" class="modal" hidden>
+    <div class="modalCard">
+      <div class="modalTop">
+        <div><b>About DV-Coll</b></div>
+        <button id="aboutCloseBtn" class="btn">Close</button>
+      </div>
+      <div id="aboutBody" class="helpBody"></div>
+    </div>
+  </div>
+
+  <!-- Saved lists modal -->
+  <div id="listsModal" class="modal" hidden>
+    <div class="modalCard">
+      <div class="modalTop">
+        <div><b>Saved file lists</b></div>
+        <div class="row">
+          <button id="importListBtn" class="btn">Import JSON…</button>
+          <button id="listsCloseBtn" class="btn">Close</button>
+        </div>
+      </div>
+      <div class="helpBody">
+        <div class="listGrid" id="savedListsContainer"></div>
+        <div class="small" style="margin-top:10px;">
+          Tip: Saved lists are stored inside your browser (on this machine). Export/import JSON if you want to move
+          lists between machines.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // ===== Legacy constants =====
+      const ID_LEN = 11;
+      const MAXWORDS_PER_LINE = 40;
+
+      // Divider witness line: must contain "$$" so it passes through as "no-collate"
+      const DIVIDER_IDTAG = "DIVIDERLN$$  "; // 11 chars (7 + 2 + 2 spaces)
+      const DIVIDER_TEXT = "------------------------------------------------------------";
+
+      const ABOUT_HTML = `
+	  
+	  <p>
+		<b>DV-Coll, <em>ver.</em> 3</b> is a cross-platform HTML/CSS/JS re-implementation
+		of the original DOS-based <b>DV-Coll</b>, which was written in GW-Basic by
+		Bruce Dinoff and Bill Vilberg in 1984, enhanced by Raoul Jerome and Al Leybourne,
+		and upgraded to Visual Basic by Johan Bjursell, who created the first GUI.
+		Subsequently Cameron Purvis added new features to the program, bundled it and <b>FrameGen</b> in an Inno Script, and
+		maintained the whole package until his untimely death in 2014. 	Jeffrey S. A. Stringer wrote the original <b>FrameGen</b> program,
+		also in GW-Basic.
+	  </p>
+    <p> This cross-platform version of the program was developed by Gary A. Stringer in 2026.</p>
+
+	  <p class="small">© 2000–2026 Gary Stringer</p>
+	`;
+
+
+      // ===== Local saved-list storage =====
+      const LS_INDEX_KEY = "dv-coll:list-index:v1";
+      const LS_ITEM_PREFIX = "dv-coll:list:v1:";
+
+      function loadIndex() {
+        try {
+          const s = localStorage.getItem(LS_INDEX_KEY);
+          const arr = s ? JSON.parse(s) : [];
+          return Array.isArray(arr) ? arr : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveIndex(names) {
+        localStorage.setItem(LS_INDEX_KEY, JSON.stringify(names));
+      }
+
+      function lsKey(name) {
+        return LS_ITEM_PREFIX + name;
+      }
+
+      function listSavedNames() {
+        return loadIndex();
+      }
+
+      function saveNamedList(name, payload) {
+        const idx = loadIndex();
+        if (!idx.includes(name)) idx.unshift(name);
+        saveIndex(idx);
+        localStorage.setItem(lsKey(name), JSON.stringify(payload));
+      }
+
+      function deleteNamedList(name) {
+        localStorage.removeItem(lsKey(name));
+        const idx = loadIndex().filter(n => n !== name);
+        saveIndex(idx);
+      }
+
+      function loadNamedList(name) {
+        const s = localStorage.getItem(lsKey(name));
+        if (!s) return null;
+        try { return JSON.parse(s); } catch { return null; }
+      }
+
+      // ===== State =====
+      let fileItems = [];
+      let lastOutputText = "";
+      let selectedIndex = -1;
+      let pendingListPlan = null;
+      let dragIndex = -1;
+
+      // ===== UI =====
+      const fileInput = document.getElementById("fileInput");
+      const loadListInput = document.getElementById("loadListInput");
+      const addFilesBtn = document.getElementById("addFilesBtn");
+      const loadListBtn = document.getElementById("loadListBtn");
+
+      const topBtn = document.getElementById("topBtn");
+      const bottomBtn = document.getElementById("bottomBtn");
+      const runBtn = document.getElementById("runBtn");
+      const saveBtn = document.getElementById("saveBtn");
+      const saveListBtn = document.getElementById("saveListBtn");
+      const clearBtn = document.getElementById("clearBtn");
+
+      const upBtn = document.getElementById("upBtn");
+      const downBtn = document.getElementById("downBtn");
+      const removeBtn = document.getElementById("removeBtn");
+
+      const dividerAboveBtn = document.getElementById("dividerAboveBtn");
+      const dividerBelowBtn = document.getElementById("dividerBelowBtn");
+
+      const fileListEl = document.getElementById("fileList");
+      const outputTA = document.getElementById("output");
+      const statusEl = document.getElementById("status");
+      const clearPreviewBtn = document.getElementById("clearPreviewBtn");
+
+      const helpBtn = document.getElementById("helpBtn");
+      const aboutBtn = document.getElementById("aboutBtn");
+
+      const helpModal = document.getElementById("helpModal");
+      const aboutModal = document.getElementById("aboutModal");
+      const helpCloseBtn = document.getElementById("helpCloseBtn");
+      const aboutCloseBtn = document.getElementById("aboutCloseBtn");
+
+      const helpBody = document.getElementById("helpBody");
+      const aboutBody = document.getElementById("aboutBody");
+      const helpTemplate = document.getElementById("helpTemplate");
+
+      const listsModal = document.getElementById("listsModal");
+      const listsCloseBtn = document.getElementById("listsCloseBtn");
+      const importListBtn = document.getElementById("importListBtn");
+      const savedListsContainer = document.getElementById("savedListsContainer");
+
+      function setStatus(msg) { statusEl.textContent = msg; }
+
+      function getMode() {
+        const el = document.querySelector('input[name="mode"]:checked');
+        return el ? el.value : "word";
+      }
+
+      function setMode(mode) {
+        const val = (mode === "line") ? "line" : (mode === "raw") ? "raw" : "word";
+        const input = document.querySelector(`input[name="mode"][value="${val}"]`);
+        if (input) input.checked = true;
+      }
+
+      function firstBaseIndex() {
+        return fileItems.findIndex(it => it.kind === "file");
+      }
+
+      function enableControls() {
+        const hasAny = fileItems.length > 0;
+        const baseIdx = firstBaseIndex();
+        const hasRealFiles = baseIdx !== -1;
+
+        const hasSel = hasAny && selectedIndex >= 0 && selectedIndex < fileItems.length;
+
+        runBtn.disabled = !hasRealFiles;
+        clearBtn.disabled = !hasAny;
+        saveListBtn.disabled = !hasAny;
+
+        clearPreviewBtn.disabled = !lastOutputText;
+
+        topBtn.disabled = !hasSel || selectedIndex === 0;
+        bottomBtn.disabled = !hasSel || selectedIndex === fileItems.length - 1;
+
+        upBtn.disabled = !hasSel || selectedIndex === 0;
+        downBtn.disabled = !hasSel || selectedIndex === fileItems.length - 1;
+
+        removeBtn.disabled = !hasSel;
+
+        dividerAboveBtn.disabled = !(hasAny && hasSel);
+        dividerBelowBtn.disabled = !(hasAny && hasSel);
+      }
+
+      function makeDividerItem() {
+        return { kind: "divider", name: `${DIVIDER_IDTAG}${DIVIDER_TEXT}` };
+      }
+
+      function itemLabel(it, idx) {
+        const baseIdx = firstBaseIndex();
+        if (it.kind === "divider") return "────────────  divider  ────────────";
+        const baseSuffix = (idx === baseIdx) ? "  (base)" : "";
+        return it.name + baseSuffix;
+      }
+
+      function renderFileList() {
+        fileListEl.innerHTML = "";
+
+        if (fileItems.length === 0) {
+          selectedIndex = -1;
+          enableControls();
+          return;
+        }
+
+        if (selectedIndex < 0) selectedIndex = 0;
+        if (selectedIndex >= fileItems.length) selectedIndex = fileItems.length - 1;
+
+        fileItems.forEach((it, idx) => {
+          const row = document.createElement("div");
+          row.className = "fileItem";
+          row.draggable = true;
+          row.dataset.idx = String(idx);
+
+          row.setAttribute("role", "option");
+          row.setAttribute("aria-selected", String(idx === selectedIndex));
+
+          const label = document.createElement("span");
+          label.textContent = itemLabel(it, idx);
+          row.appendChild(label);
+
+          if (it.kind === "divider") {
+            const b = document.createElement("span");
+            b.className = "badge";
+            b.textContent = "$$";
+            row.appendChild(b);
+          }
+
+          row.addEventListener("click", () => {
+            selectedIndex = idx;
+            renderFileList();
+            enableControls();
+          });
+
+          row.addEventListener("dragstart", (e) => {
+            dragIndex = idx;
+            row.classList.add("dragging");
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", String(idx));
+          });
+
+          row.addEventListener("dragend", () => {
+            dragIndex = -1;
+            row.classList.remove("dragging");
+            [...fileListEl.querySelectorAll(".dropTarget")].forEach(n => n.classList.remove("dropTarget"));
+          });
+
+          row.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            row.classList.add("dropTarget");
+            e.dataTransfer.dropEffect = "move";
+          });
+
+          row.addEventListener("dragleave", () => {
+            row.classList.remove("dropTarget");
+          });
+
+          row.addEventListener("drop", (e) => {
+            e.preventDefault();
+            row.classList.remove("dropTarget");
+
+            const from = Number(e.dataTransfer.getData("text/plain"));
+            const to = idx;
+
+            if (!Number.isFinite(from) || from < 0 || from >= fileItems.length) return;
+            if (from === to) return;
+
+            const [moved] = fileItems.splice(from, 1);
+            fileItems.splice(to, 0, moved);
+
+            selectedIndex = to;
+            renderFileList();
+            enableControls();
+          });
+
+          fileListEl.appendChild(row);
+        });
+
+        enableControls();
+      }
+
+      // Button wiring
+      addFilesBtn.addEventListener("click", () => fileInput.click());
+      loadListBtn.addEventListener("click", () => openListsModal());
+      importListBtn.addEventListener("click", () => loadListInput.click());
+
+      upBtn.addEventListener("click", () => {
+        if (selectedIndex <= 0) return;
+        [fileItems[selectedIndex - 1], fileItems[selectedIndex]] = [fileItems[selectedIndex], fileItems[selectedIndex - 1]];
+        selectedIndex -= 1;
+        renderFileList();
+      });
+
+      downBtn.addEventListener("click", () => {
+        if (selectedIndex < 0 || selectedIndex >= fileItems.length - 1) return;
+        [fileItems[selectedIndex + 1], fileItems[selectedIndex]] = [fileItems[selectedIndex], fileItems[selectedIndex + 1]];
+        selectedIndex += 1;
+        renderFileList();
+      });
+
+      topBtn.addEventListener("click", () => {
+        if (selectedIndex <= 0) return;
+        const [it] = fileItems.splice(selectedIndex, 1);
+        fileItems.unshift(it);
+        selectedIndex = 0;
+        renderFileList();
+      });
+
+      bottomBtn.addEventListener("click", () => {
+        if (selectedIndex < 0 || selectedIndex >= fileItems.length - 1) return;
+        const [it] = fileItems.splice(selectedIndex, 1);
+        fileItems.push(it);
+        selectedIndex = fileItems.length - 1;
+        renderFileList();
+      });
+
+      removeBtn.addEventListener("click", () => {
+        if (selectedIndex < 0) return;
+        fileItems.splice(selectedIndex, 1);
+        if (fileItems.length === 0) selectedIndex = -1;
+        else if (selectedIndex >= fileItems.length) selectedIndex = fileItems.length - 1;
+        renderFileList();
+      });
+
+      clearBtn.addEventListener("click", () => {
+        fileItems = [];
+        selectedIndex = -1;
+        pendingListPlan = null;
+
+        lastOutputText = "";
+        outputTA.value = "";
+        saveBtn.disabled = true;
+        clearPreviewBtn.disabled = true;
+
+        setStatus("");
+        renderFileList();
+      });
+
+      dividerAboveBtn.addEventListener("click", () => {
+        if (selectedIndex < 0) return;
+        fileItems.splice(selectedIndex, 0, makeDividerItem());
+        renderFileList();
+      });
+
+      dividerBelowBtn.addEventListener("click", () => {
+        if (selectedIndex < 0) return;
+        fileItems.splice(selectedIndex + 1, 0, makeDividerItem());
+        selectedIndex = selectedIndex + 1;
+        renderFileList();
+      });
+
+      clearPreviewBtn.addEventListener("click", () => {
+        lastOutputText = "";
+        outputTA.value = "";
+        saveBtn.disabled = true;
+        clearPreviewBtn.disabled = true;
+        setStatus("Preview cleared. Reorder files and click Run collation.");
+      });
+
+      // ============================================================
+      // Help demo popup wiring
+      // ============================================================
+      window.openHelpPopupFrom = function (helpRootEl, templateId) {
+        const tpl = helpRootEl.querySelector(`#${templateId}`);
+        if (!tpl) {
+          console.warn("Help popup template not found:", templateId);
+          return;
+        }
+
+        const overlay = tpl.content.firstElementChild.cloneNode(true);
+
+        overlay.addEventListener("click", (e) => {
+          const action = e.target?.getAttribute?.("data-action");
+          if (action === "close") overlay.remove();
+          if (action === "overlayClose" && e.target === overlay) overlay.remove();
+        });
+
+        const onKey = (e) => {
+          if (e.key === "Escape") {
+            overlay.remove();
+            window.removeEventListener("keydown", onKey, true);
+          }
+        };
+        window.addEventListener("keydown", onKey, true);
+
+        document.body.appendChild(overlay);
+      };
+
+      window.wireHelpPopups = function (helpRootEl) {
+        helpRootEl.addEventListener("click", (e) => {
+          const btn = e.target.closest("[data-help-popup]");
+          if (!btn) return;
+          e.preventDefault();
+          window.openHelpPopupFrom(helpRootEl, btn.getAttribute("data-help-popup"));
+        });
+      };
+
+      // ===== Help / About / Lists modals =====
+      function openModal(which) {
+        if (which === "help") {
+          helpBody.innerHTML = "";
+          helpBody.appendChild(helpTemplate.content.cloneNode(true));
+
+          const helpEl = helpBody.querySelector(".helpDoc");
+          if (helpEl && !helpEl.dataset.popupsWired) {
+            wireHelpPopups(helpEl);
+            helpEl.dataset.popupsWired = "1";
+          }
+
+          helpModal.hidden = false;
+          return;
+        }
+
+        if (which === "about") {
+          aboutBody.innerHTML = ABOUT_HTML;
+          aboutModal.hidden = false;
+          return;
+        }
+
+        if (which === "lists") {
+          renderSavedListsUI();
+          listsModal.hidden = false;
+          return;
+        }
+      }
+
+      function closeModals() {
+        helpModal.hidden = true;
+        aboutModal.hidden = true;
+        listsModal.hidden = true;
+      }
+
+      // Open buttons
+      helpBtn.addEventListener("click", () => openModal("help"));
+      aboutBtn.addEventListener("click", () => openModal("about"));
+      loadListBtn.addEventListener("click", () => openModal("lists")); // if you use openListsModal elsewhere, you can keep it too
+
+      // Close buttons (THIS is the key fix)
+      helpCloseBtn.addEventListener("click", (e) => { e.preventDefault(); closeModals(); });
+      aboutCloseBtn.addEventListener("click", (e) => { e.preventDefault(); closeModals(); });
+      listsCloseBtn.addEventListener("click", (e) => { e.preventDefault(); closeModals(); });
+
+      // Click outside card closes
+      helpModal.addEventListener("click", (e) => { if (e.target === helpModal) closeModals(); });
+      aboutModal.addEventListener("click", (e) => { if (e.target === aboutModal) closeModals(); });
+      listsModal.addEventListener("click", (e) => { if (e.target === listsModal) closeModals(); });
+
+      // ESC closes
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModals(); });
+
+      // Optional helper (keep if other code calls it)
+      function openListsModal() {
+        renderSavedListsUI();
+        listsModal.hidden = false;
+      }
+
+
+      function renderSavedListsUI() {
+        const names = listSavedNames();
+        savedListsContainer.innerHTML = "";
+
+        if (names.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "small";
+          empty.textContent = "No saved lists yet. Use “Save file list” after arranging files.";
+          savedListsContainer.appendChild(empty);
+          return;
+        }
+
+        for (const name of names) {
+          const row = document.createElement("div");
+          row.className = "listRow";
+
+          const left = document.createElement("div");
+          left.className = "listName";
+          left.textContent = name;
+
+          const actions = document.createElement("div");
+          actions.className = "listActions";
+
+          const loadBtn = document.createElement("button");
+          loadBtn.className = "btn";
+          loadBtn.textContent = "Load";
+          loadBtn.addEventListener("click", () => {
+            const payload = loadNamedList(name);
+            if (!payload) {
+              alert("Could not load this saved list.");
+              return;
+            }
+            applyLoadedListPayload(payload, `Loaded list “${name}”.`);
+            closeModals();
+          });
+
+          const exportBtn = document.createElement("button");
+          exportBtn.className = "btn";
+          exportBtn.textContent = "Export";
+          exportBtn.addEventListener("click", () => {
+            const payload = loadNamedList(name);
+            if (!payload) { alert("Could not export this saved list."); return; }
+            downloadText(`dv-coll-file-list-${safeName(name)}.json`, JSON.stringify(payload, null, 2));
+          });
+
+          const delBtn = document.createElement("button");
+          delBtn.className = "btn";
+          delBtn.textContent = "Delete";
+          delBtn.addEventListener("click", () => {
+            if (!confirm(`Delete saved list “${name}”?`)) return;
+            deleteNamedList(name);
+            renderSavedListsUI();
+          });
+
+          actions.appendChild(loadBtn);
+          actions.appendChild(exportBtn);
+          actions.appendChild(delBtn);
+
+          row.appendChild(left);
+          row.appendChild(actions);
+          savedListsContainer.appendChild(row);
+        }
+      }
+
+      function safeName(s) {
+        return String(s).replace(/[^\w\-]+/g, "_").slice(0, 64) || "list";
+      }
+
+      // ===== File loading =====
+      fileInput.addEventListener("change", async () => {
+        const files = [...fileInput.files || []];
+        fileInput.value = "";
+        if (files.length === 0) return;
+
+        for (const f of files) {
+          fileItems.push({ kind: "file", file: f, name: f.name });
+        }
+
+        if (selectedIndex < 0) selectedIndex = 0;
+
+        if (pendingListPlan) {
+          applyPendingListPlanToCurrentFiles();
+        }
+
+        renderFileList();
+        setStatus(`Loaded ${files.length} file(s).`);
+      });
+
+      // ===== Save list =====
+      saveListBtn.addEventListener("click", () => {
+        if (fileItems.length === 0) return;
+
+        const defaultName = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+        const name = prompt("Name this saved list:", `dv-coll-${defaultName}`);
+        if (!name) return;
+
+        const payload = buildListPayload();
+        saveNamedList(name, payload);
+
+        const doExport = confirm("Saved inside this program.\n\nAlso export a JSON file (portable backup)?");
+        if (doExport) {
+          downloadText(`dv-coll-file-list-${safeName(name)}.json`, JSON.stringify(payload, null, 2));
+        }
+
+        setStatus(`Saved list “${name}” (stored on this computer/browser).`);
+      });
+
+      function buildListPayload() {
+        return {
+          version: "dv-coll-list-2",
+          mode: getMode(),
+          items: fileItems.map(it => {
+            if (it.kind === "divider") return { kind: "divider", name: it.name };
+            return { kind: "file", name: it.name };
+          }),
+          savedAt: new Date().toISOString()
+        };
+      }
+
+      function applyLoadedListPayload(payload, statusMsg) {
+        const mode = (payload && payload.mode === "line") ? "line" : (payload && payload.mode === "raw") ? "raw" : "word";
+        setMode(mode);
+
+        if (payload && Array.isArray(payload.items)) {
+          pendingListPlan = {
+            mode,
+            items: payload.items
+              .map(x => (x && x.kind === "divider") ? { kind: "divider", name: x.name || "" } :
+                (x && x.kind === "file") ? { kind: "file", name: x.name || "" } : null)
+              .filter(Boolean)
+          };
+        } else if (payload && Array.isArray(payload.files)) {
+          pendingListPlan = {
+            mode,
+            items: payload.files.map(n => ({ kind: "file", name: String(n) }))
+          };
+        } else {
+          pendingListPlan = null;
+        }
+
+        if (pendingListPlan && fileItems.some(it => it.kind === "file")) {
+          applyPendingListPlanToCurrentFiles();
+          renderFileList();
+        }
+
+        setStatus(statusMsg || "List loaded.");
+      }
+
+      function applyPendingListPlanToCurrentFiles() {
+        if (!pendingListPlan) return;
+
+        const wanted = pendingListPlan.items;
+
+        const pool = fileItems.filter(it => it.kind === "file");
+        const byName = new Map();
+        for (const it of pool) {
+          const k = it.name;
+          if (!byName.has(k)) byName.set(k, []);
+          byName.get(k).push(it);
+        }
+
+        const newOrder = [];
+
+        for (const want of wanted) {
+          if (want.kind === "divider") {
+            newOrder.push({ kind: "divider", name: want.name || makeDividerItem().name });
+            continue;
+          }
+          const name = want.name;
+          const arr = byName.get(name);
+          if (arr && arr.length) newOrder.push(arr.shift());
+        }
+
+        const used = new Set(newOrder.filter(x => x.kind === "file"));
+        for (const it of pool) {
+          if (!used.has(it)) newOrder.push(it);
+        }
+
+        fileItems = newOrder;
+        selectedIndex = (fileItems.length ? 0 : -1);
+      }
+
+      // ===== Import JSON list =====
+      loadListInput.addEventListener("change", async () => {
+        const f = (loadListInput.files || [])[0];
+        loadListInput.value = "";
+        if (!f) return;
+
+        try {
+          const txt = await f.text();
+          const payload = JSON.parse(txt);
+          if (!payload || (!Array.isArray(payload.items) && !Array.isArray(payload.files))) {
+            alert("Not a valid DV-COLL list file.");
+            return;
+          }
+          applyLoadedListPayload(payload, "List imported.");
+          const nm = prompt(
+            "Optional: save this imported list inside the program under a name:",
+            `imported-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}`
+          );
+          if (nm) {
+            saveNamedList(nm, payload);
+            setStatus(`Imported list saved as “${nm}”.`);
+          }
+        } catch {
+          alert("Could not read list file.");
+        }
+      });
+
+      // ===== Formatting helpers for $$ note blocks =====
+      function looksLikeIdTagLine(line) {
+        if (!line) return false;
+        if (line.length < ID_LEN) return false;
+
+        const head = line.slice(0, ID_LEN);
+
+        if (head === "DIVIDERLN$$") return true;
+        if (head === "IDENTILIN$$") return true;
+
+        if (/\s/.test(head)) return false;
+
+        if (/^\d{3}\.[A-Za-z0-9]{3}\.[A-Za-z0-9$]{3}$/.test(head)) return true;
+
+        const safe = new RegExp(`^[A-Za-z0-9._$-]{${ID_LEN}}$`);
+        return safe.test(head);
+      }
+
+      function mergeDollarNoteContinuations(lines) {
+        const out = [];
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i] ?? "";
+
+          const isNoteStart =
+            line.includes("$$") && looksLikeIdTagLine(line);
+
+          if (!isNoteStart || line.startsWith("DIVIDERLN$$")) {
+            out.push(line);
+            continue;
+          }
+
+          const head = line.slice(0, ID_LEN);
+          const parts = [line.slice(ID_LEN).trim()];
+
+          let j = i + 1;
+          while (j < lines.length) {
+            const nxt = lines[j] ?? "";
+            if (nxt.trim() === "") break;
+            if (looksLikeIdTagLine(nxt)) break;
+            parts.push(nxt.trim());
+            j++;
+          }
+
+          const merged = parts.join(" ").replace(/\s+/g, " ").trim();
+          out.push(merged ? (head + "  " + merged) : (head + "  "));
+          i = j - 1;
+        }
+        return out;
+      }
+
+      function formatNoCollateNoteBlocks(outputText) {
+        const lines = String(outputText || "").split("\n");
+        const out = [];
+        let i = 0;
+
+        while (i < lines.length) {
+          const line = lines[i] ?? "";
+          const hasDollars = line.includes("$$");
+
+          if (hasDollars && looksLikeIdTagLine(line)) {
+            const head = line.slice(0, ID_LEN);
+            const rest = line.slice(ID_LEN).trim();
+
+            if (head === "DIVIDERLN$$") {
+              out.push(line);
+              i++;
+              continue;
+            }
+
+            const parts = [rest];
+            let j = i + 1;
+            while (j < lines.length) {
+              const nxt = lines[j] ?? "";
+              if (nxt.trim() === "") break;
+              if (looksLikeIdTagLine(nxt)) break;
+              parts.push(nxt.trim());
+              j++;
+            }
+
+            const merged = parts.join(" ").replace(/\s+/g, " ").trim();
+            if (!merged) out.push(head + "  ");
+            else out.push(head + "  " + merged);
+
+            i = j;
+            continue;
+          }
+
+          out.push(line);
+          i++;
+        }
+
+        return out.join("\n");
+      }
+
+      function collapseDoubleSpaces(s) {
+        s = String(s ?? "");
+        while (s.includes("  ")) s = s.replaceAll("  ", " ");
+        return s;
+      }
+
+      function wordsplit(inline) {
+        if (!inline || inline.length === 0) return [""];
+        inline = collapseDoubleSpaces(inline);
+
+        const out = [];
+        let lspace = 0;
+        while (true) {
+          const nspace = inline.indexOf(" ", lspace);
+          if (nspace === -1) break;
+          out.push(inline.substring(lspace, nspace));
+          lspace = nspace + 1;
+        }
+        if (lspace < inline.length) out.push(inline.substring(lspace));
+        return out;
+      }
+
+      function trimSpaces(s) {
+        if (s == null) return "";
+        s = String(s);
+        while (s.startsWith(" ")) s = s.slice(1);
+        while (s.endsWith(" ")) s = s.slice(0, -1);
+        return s;
+      }
+
+      // ===== Alignment normalization (expanded DV tags) =====
+      const EQUIV = new Map([
+        ["WCH", "WHICH"],
+        ["WCH.", "WHICH"],
+      ]);
+
+      const DV_TOGGLE_MARKERS = [
+        "%1", "%2",
+        "%3", "%4",
+        "%5", "%6",
+        "%7", "%8",
+        "%9", "%0",
+        "%J", "%K",
+        "%Y", "%Z",
+      ];
+
+      const DV_SUBS = new Map([
+        ["%\\", ""],
+        ["%/", ""],
+        ["%X", ""],
+        ["%_", " "],
+        ["%-", "-"],
+        ["%>", ""],
+        ["%S", ""],
+        ["%@", ""],
+        ["%<<", ""],
+        ["%>>", ""],
+        ["%V", ""],
+        ["%F", ""],
+        ["%(", "["],
+        ["%)", "]"],
+      ]);
+
+      const MULTI_TOKEN_EQUIVS = [
+        {
+          base1: /^I$/i,
+          base2: /^(HAVE|HAUE)$/i,
+          witness: /^I'AVE$/i,
+        },
+      ];
+
+      const _DV_SUB_KEYS = Array.from(DV_SUBS.keys()).sort((a, b) => b.length - a.length);
+      function applyDvSubstitutionsForMatch(s) {
+        let out = String(s ?? "");
+        for (const key of _DV_SUB_KEYS) out = out.replaceAll(key, DV_SUBS.get(key));
+        return out;
+      }
+
+      function stripAngleGuillemetsForMatch(s) {
+        return String(s ?? "")
+          .replaceAll(">>", "")
+          .replaceAll("<<", "")
+          .replaceAll(">", "")
+          .replaceAll("<", "");
+      }
+
+      function stripDvDiacriticsForMatch(s) {
+        let out = String(s ?? "");
+        out = out.replace(/(.)\$\+/g, "$1");
+        out = out.replace(/(.)%(A|B|C|D|E|G|I|M|O|o|P|Q|T|U|W)/g, "$1");
+        out = out.replace(/(..)%L/g, "$1");
+        return out;
+      }
+
+      function stripDvMarkupForMatch(s) {
+        let out = String(s ?? "");
+        for (const t of DV_TOGGLE_MARKERS) out = out.replaceAll(t, "");
+        out = applyDvSubstitutionsForMatch(out);
+        out = stripAngleGuillemetsForMatch(out);
+        out = stripDvDiacriticsForMatch(out);
+        return out;
+      }
+
+      function normalizeForMatch(raw) {
+        let s = trimSpaces(String(raw ?? ""));
+        s = s.replace(/\u2019/g, "'");
+        s = stripDvMarkupForMatch(s);
+        s = s.replaceAll(":", "");
+        s = s.toUpperCase();
+        if (EQUIV.has(s)) s = EQUIV.get(s);
+        return s;
+      }
+
+      function align_match(a, b) {
+        return normalizeForMatch(a) === normalizeForMatch(b);
+      }
+
+      function raw_match(a, b) {
+        return trimSpaces(String(a ?? "")) === trimSpaces(String(b ?? ""));
+      }
+
+      function words_close(basewrd, compwrd) {
+        let baseword = normalizeForMatch(basewrd);
+        let compword = normalizeForMatch(compwrd);
+
+        if (baseword.length < compword.length) {
+          const tmp = baseword;
+          baseword = compword;
+          compword = tmp;
+        }
+
+        if (baseword.length === 0 && compword.length === 0) return { ok: true, pcent: 1.0 };
+        if (compword.length === 0) return { ok: false, pcent: 0.0 };
+        if (baseword.length > (1.7 * compword.length)) return { ok: false, pcent: 0.0 };
+
+        let closeness = 0;
+        let ps = 0;
+        for (let i = 0; i < compword.length; i++) {
+          const ch = compword[i];
+          const pc = baseword.indexOf(ch, ps);
+          if (pc >= ps && pc !== -1) {
+            closeness += 1;
+            ps = pc;
+          }
+        }
+        const pcent = closeness / baseword.length;
+        return { ok: pcent > 0.6, pcent };
+      }
+
+      function isSpecialNoCollateLine(line) {
+        if (line.includes("$$")) return true;
+        const headPlus = line.slice(0, ID_LEN + 2);
+        if (headPlus.includes("om")) return true;
+        return false;
+      }
+
+      async function ensureLoadedRealFiles() {
+        for (const it of fileItems) {
+          if (it.kind !== "file") continue;
+          if (it.text == null) {
+            it.text = await it.file.text();
+            it.text = it.text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+            let lines = it.text.split("\n");
+            lines = mergeDollarNoteContinuations(lines);
+            it.lines = lines;
+          }
+        }
+      }
+
+      function lineLevelCollate(allLines, baseIndex) {
+        const out = [];
+        out.push(`Collation run on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} : Line-level`);
+        out.push("");
+
+        const lineCount = allLines[0].length;
+        for (let li = 0; li < lineCount; li++) {
+          const base = allLines[baseIndex][li] ?? "";
+
+          if (String(base).includes("$$")) {
+            for (let fi = 0; fi < allLines.length; fi++) {
+              const s = allLines[fi][li] ?? "";
+              if (s.length > 0) out.push(s);
+            }
+            out.push("");
+            continue;
+          }
+
+          let allSame = true;
+          for (let fi = 0; fi < allLines.length; fi++) {
+            if (fi === baseIndex) continue;
+            const s = allLines[fi][li] ?? "";
+            if (s !== base) { allSame = false; break; }
+          }
+          if (allSame) continue;
+
+          for (let fi = 0; fi < allLines.length; fi++) {
+            const s = allLines[fi][li] ?? "";
+            if (s.length > 0) out.push(s);
+          }
+          out.push("");
+        }
+        return out.join("\n");
+      }
+
+      function rawPrintLines(allLines) {
+        const out = [];
+        out.push(`Collation run on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} : Print lines`);
+        out.push("");
+
+        const lineCount = allLines[0].length;
+        for (let li = 0; li < lineCount; li++) {
+          for (let fi = 0; fi < allLines.length; fi++) {
+            const s = allLines[fi][li] ?? "";
+            if (s.length > 0) out.push(s);
+          }
+          out.push("");
+        }
+        return out.join("\n");
+      }
+
+      function wordLevelCollate(allLines, baseIndex) {
+        const out = [];
+        out.push(`Collation run on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} : Word-level`);
+        out.push("");
+
+        const fileCount = allLines.length;
+        const lineCount = allLines[0].length;
+
+        const countWords = (arr) => {
+          let n = 0;
+          while (arr[n + 1]) n++;
+          return n;
+        };
+
+        for (let li = 0; li < lineCount; li++) {
+          const rawLines = [];
+          for (let fi = 0; fi < fileCount; fi++) rawLines.push(allLines[fi][li] ?? "");
+
+          const baseRaw = rawLines[baseIndex] ?? "";
+          const baseSpecial = isSpecialNoCollateLine(baseRaw);
+
+          const superchunk = Array.from({ length: fileCount }, () => Array(MAXWORDS_PER_LINE + 2).fill(""));
+
+          for (let fi = 0; fi < fileCount; fi++) {
+            const line = rawLines[fi];
+            if (line.length === 0) { superchunk[fi][0] = ""; continue; }
+
+            if (line.includes("$$")) { superchunk[fi][0] = line; continue; }
+
+            const idtag = line.slice(0, ID_LEN);
+            const rest = line.slice(ID_LEN);
+            superchunk[fi][0] = idtag;
+
+            const headPlus = line.slice(0, ID_LEN + 2);
+            if (headPlus.includes("om")) {
+              superchunk[fi][1] = line.slice(ID_LEN);
+              continue;
+            }
+
+            const tokens = wordsplit(rest);
+            let col = 1;
+            for (const t of tokens) {
+              if (t === "") continue;
+              if (col > MAXWORDS_PER_LINE) break;
+              superchunk[fi][col++] = t;
+            }
+          }
+
+          if (baseSpecial) {
+            for (let fi = 0; fi < fileCount; fi++) out.push(rawLines[fi]);
+            out.push("");
+            continue;
+          }
+
+          const original_line = [];
+          for (let c = 1; c < superchunk[baseIndex].length; c++) {
+            const v = superchunk[baseIndex][c];
+            if (!v) break;
+            original_line[c] = v;
+          }
+
+          let leadingPadDone = false;
+          let hasLeadingInsertColumn = false;
+
+          function padLeadingColumnOnce() {
+            if (leadingPadDone) return;
+            leadingPadDone = true;
+
+            const origWords = countWords(original_line);
+            for (let c = origWords; c >= 1; c--) original_line[c + 1] = original_line[c];
+            original_line[1] = " ";
+
+            for (let f = 0; f < fileCount; f++) {
+              for (let c = MAXWORDS_PER_LINE; c >= 1; c--) superchunk[f][c + 1] = superchunk[f][c];
+              superchunk[f][1] = " ";
+            }
+          }
+
+          {
+            const b0 = original_line[1] ?? "";
+            let needLeadPad = false;
+
+            for (let fi = 0; fi < fileCount; fi++) {
+              if (fi === baseIndex) continue;
+              const witnessRaw = rawLines[fi] ?? "";
+              if (isSpecialNoCollateLine(witnessRaw)) continue;
+
+              const w0 = superchunk[fi][1] ?? "";
+              const w1 = superchunk[fi][2] ?? "";
+
+              if (w0 && !align_match(b0, w0) && (align_match(b0, w1) || words_close(b0, w1).ok)) {
+                needLeadPad = true;
+                break;
+              }
+            }
+
+            if (needLeadPad) {
+              padLeadingColumnOnce();
+              hasLeadingInsertColumn = true;
+            }
+          }
+
+          for (let fi = 0; fi < fileCount; fi++) {
+            if (fi === baseIndex) continue;
+
+            const witnessRaw = rawLines[fi];
+            if (isSpecialNoCollateLine(witnessRaw)) continue;
+
+            const compare_line = [];
+            for (let c = 1; c < superchunk[fi].length; c++) {
+              const v = superchunk[fi][c];
+              if (!v) break;
+              compare_line[c] = v;
+              superchunk[fi][c] = "";
+            }
+
+            let orig_ptr = 1;
+            let comp_ptr = 1;
+
+            while (true) {
+              const orig_words = countWords(original_line);
+              const comp_words = countWords(compare_line);
+              if (!(orig_ptr <= orig_words || comp_ptr <= comp_words)) break;
+
+              const o = original_line[orig_ptr] ?? "";
+              const w = compare_line[comp_ptr] ?? "";
+
+              if (align_match(o, w)) {
+                superchunk[fi][orig_ptr] = raw_match(o, w) ? " " : (compare_line[comp_ptr] ?? "");
+                orig_ptr++; comp_ptr++;
+                continue;
+              }
+
+              const close0 = words_close(o, w);
+              if (close0.ok) {
+                superchunk[fi][orig_ptr] = compare_line[comp_ptr] ?? "";
+                orig_ptr++; comp_ptr++;
+                continue;
+              }
+
+              {
+                const base1 = (original_line[orig_ptr] ?? "");
+                const base2 = (original_line[orig_ptr + 1] ?? "");
+                const wit1 = (compare_line[comp_ptr] ?? "");
+
+                const b1 = base1.replace(/\u2019/g, "'").trim().toUpperCase();
+                const b2 = base2.replace(/\u2019/g, "'").trim().toUpperCase();
+                const w1 = wit1.replace(/\u2019/g, "'").trim().toUpperCase();
+
+                let matched = false;
+
+                for (const rule of MULTI_TOKEN_EQUIVS) {
+                  if (rule.base1.test(b1) && rule.base2.test(b2) && rule.witness.test(w1)) {
+                    superchunk[fi][orig_ptr] = wit1;
+                    superchunk[fi][orig_ptr + 1] = "<" + base2 + ">";
+                    orig_ptr += 2;
+                    comp_ptr += 1;
+                    matched = true;
+                    break;
+                  }
+                }
+
+                if (matched) continue;
+              }
+
+              if (comp_ptr > comp_words || orig_ptr > orig_words) {
+                if (comp_ptr > comp_words && orig_ptr <= orig_words) {
+                  superchunk[fi][orig_ptr] = "<" + (original_line[orig_ptr] ?? "") + ">";
+                  orig_ptr++;
+                  continue;
+                }
+
+                if (orig_ptr > orig_words && comp_ptr <= comp_words) {
+                  const tok = (compare_line[comp_ptr] ?? "");
+                  superchunk[fi][orig_ptr] = "{" + tok + "}";
+                  orig_ptr++;
+                  comp_ptr++;
+                  continue;
+                }
+              }
+
+              const o0 = original_line[orig_ptr] ?? "";
+              const o1 = original_line[orig_ptr + 1] ?? "";
+              const w0 = compare_line[comp_ptr] ?? "";
+              const w1 = compare_line[comp_ptr + 1] ?? "";
+
+              const pins1 = align_match(o0, w1) || words_close(o0, w1).ok;
+              const pdel1 = align_match(o1, w0) || words_close(o1, w0).ok;
+
+              const pcv101 = words_close(original_line[orig_ptr + 1] ?? "", compare_line[comp_ptr + 1] ?? "");
+              const pcv202 = words_close(original_line[orig_ptr + 2] ?? "", compare_line[comp_ptr + 2] ?? "");
+              const bestSnap = Math.max(pcv101.pcent, pcv202.pcent);
+
+              if (!pins1 && !pdel1 && bestSnap > 0.0) {
+                superchunk[fi][orig_ptr] = compare_line[comp_ptr] ?? "";
+                orig_ptr++; comp_ptr++;
+                continue;
+              }
+
+              if (!pins1 || !pdel1) {
+                if (!pdel1 && comp_ptr <= comp_words) {
+                  if (!pins1 && orig_ptr <= orig_words) {
+                    superchunk[fi][orig_ptr] = compare_line[comp_ptr] ?? "";
+                    orig_ptr++; comp_ptr++;
+                  } else {
+                    if (orig_ptr > 1 && !hasLeadingInsertColumn) {
+                      const prev = orig_ptr - 1;
+                      const cur = superchunk[fi][prev] || "";
+                      superchunk[fi][prev] =
+                        (cur.length < 2 ? cur + "     " : cur + " ") +
+                        "{" + (compare_line[comp_ptr] ?? "") + "}";
+                      comp_ptr++;
+                    } else {
+                      padLeadingColumnOnce();
+                      superchunk[fi][1] = "{" + (compare_line[comp_ptr] ?? "") + "}";
+                      comp_ptr += 1;
+                      orig_ptr = 2;
+                    }
+                  }
+                } else {
+                  superchunk[fi][orig_ptr] = "<" + (original_line[orig_ptr] ?? "") + ">";
+                  orig_ptr++;
+                }
+              } else {
+                superchunk[fi][orig_ptr] = compare_line[comp_ptr] ?? "";
+                superchunk[fi][orig_ptr + 1] = compare_line[comp_ptr + 1] ?? "";
+                orig_ptr += 2;
+                comp_ptr += 2;
+              }
+            }
+          }
+
+          let most_words = 0;
+          for (let fi = 0; fi < fileCount; fi++) {
+            let c = 0;
+            while (c < superchunk[fi].length && superchunk[fi][c] !== "") c++;
+            most_words = Math.max(most_words, c - 1);
+          }
+
+          const widest = Array(most_words + 2).fill(0);
+          for (let col = 1; col <= most_words; col++) {
+            for (let fi = 0; fi < fileCount; fi++) {
+              const v = superchunk[fi][col] ?? "";
+              if (v && v.length > widest[col]) widest[col] = v.length;
+            }
+          }
+
+          for (let col = 0; col <= most_words; col++) {
+            for (let fi = 0; fi < fileCount; fi++) {
+              const v = superchunk[fi][col] ?? "";
+              if (!v) continue;
+              const need = (widest[col] ?? 0) - v.length;
+              if (need > 0) superchunk[fi][col] = v + " ".repeat(need);
+            }
+          }
+
+          for (let fi = 0; fi < fileCount; fi++) {
+            const parts = [];
+            const idtagOrRaw = superchunk[fi][0] ?? "";
+
+            if (idtagOrRaw.includes("$$")) {
+              parts.push(idtagOrRaw);
+              out.push(parts.join(" "));
+              continue;
+            }
+
+            if (idtagOrRaw) parts.push(idtagOrRaw);
+
+            for (let col = 1; col <= most_words; col++) {
+              const v = superchunk[fi][col];
+              if (v == null || v === "") break;
+              parts.push(v);
+            }
+            out.push(parts.join(" ") + " ");
+          }
+          out.push("");
+        }
+
+        return out.join("\n");
+      }
+
+      // ===== Run / Save =====
+      runBtn.addEventListener("click", async () => {
+        const baseIndex = firstBaseIndex();
+        if (baseIndex === -1) {
+          alert("Please add at least one text file (dividers alone cannot be collated).");
+          return;
+        }
+
+        setStatus("Reading files…");
+        outputTA.value = "";
+        lastOutputText = "";
+        saveBtn.disabled = true;
+        clearPreviewBtn.disabled = true;
+
+        await ensureLoadedRealFiles();
+
+        const realFiles = fileItems.filter(it => it.kind === "file");
+        const maxLines = Math.max(...realFiles.map(it => (it.lines || []).length), 1);
+
+        const allLines = fileItems.map(it => {
+          if (it.kind === "divider") {
+            const line = it.name || (DIVIDER_IDTAG + DIVIDER_TEXT);
+            return Array.from({ length: maxLines }, () => line);
+          }
+          const arr = (it.lines || []).slice();
+          while (arr.length < maxLines) arr.push("");
+          return arr;
+        });
+
+        const mode = getMode();
+        setStatus(`Running ${mode}-level…`);
+
+        let text = "";
+        if (mode === "raw") {
+          text = rawPrintLines(allLines);
+        } else if (mode === "line") {
+          text = lineLevelCollate(allLines, baseIndex);
+        } else {
+          text = wordLevelCollate(allLines, baseIndex);
+        }
+
+        text = formatNoCollateNoteBlocks(text);
+
+        lastOutputText = text;
+        outputTA.value = text;
+        saveBtn.disabled = false;
+        clearPreviewBtn.disabled = false;
+        setStatus(`Done. Items: ${fileItems.length}. Output length: ${text.length.toLocaleString()} chars.`);
+      });
+
+      saveBtn.addEventListener("click", () => {
+        if (!lastOutputText) return;
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+        downloadText(`dv-coll-output-${stamp}.txt`, lastOutputText);
+      });
+
+      function downloadText(filename, text) {
+        const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }, 0);
+      }
+
+      // Safety: ensure modals start closed
+      closeModals();
+
+      // Initial render
+      renderFileList();
+      enableControls();
+    })();
+  </script>
+</body>
+
+</html>
